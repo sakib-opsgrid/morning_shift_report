@@ -167,9 +167,18 @@ function addTrafficRow(date = '', vol = '') {
   const row  = document.createElement('div');
   row.className = 'tr-row';
   row.innerHTML = `
-    <input type="date"   class="tr-date" value="${date}" style="font-size:12px;padding:6px 8px;">
-    <input type="number" class="tr-vol"  placeholder="volume" value="${vol}" style="font-size:12px;padding:6px 8px;">
-    <span class="pct-badge pct-neu">—</span>
+    <div class="tr-col">
+      <span class="tr-col-label">Date</span>
+      <input type="date" class="tr-date" value="${date}" style="font-size:12px;padding:6px 8px;">
+    </div>
+    <div class="tr-col">
+      <span class="tr-col-label">Volume</span>
+      <input type="number" class="tr-vol" placeholder="0" value="${vol}" style="font-size:12px;padding:6px 8px;">
+    </div>
+    <div class="tr-col">
+      <span class="tr-col-label">vs Prev Day</span>
+      <span class="pct-badge pct-neu">—</span>
+    </div>
     <button class="btn-icon" onclick="this.closest('.tr-row').remove();recalcAll()">×</button>`;
   row.querySelector('.tr-vol').addEventListener('input', recalcAll);
   row.querySelector('.tr-date').addEventListener('change', recalcAll);

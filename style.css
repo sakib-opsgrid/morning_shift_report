@@ -389,33 +389,32 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.55; }
 }
 
 /* ── Traffic Table ───────────────────────────────────────── */
-.tr-header {
-  display: grid;
-  grid-template-columns: 140px 1fr 110px 32px;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 8px;
-  background: var(--surface-2);
-  border-radius: 6px;
-  margin-bottom: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .tr-row {
   display: grid;
-  grid-template-columns: 140px 1fr 110px 32px;
+  grid-template-columns: 160px 1fr 110px 32px;
   gap: 8px;
-  align-items: center;
-  margin-bottom: 6px;
+  align-items: end;
+  margin-bottom: 8px;
   padding: 4px 8px;
   border-radius: 6px;
   transition: background var(--transition);
 }
 .tr-row:hover { background: var(--surface-2); }
+
+.tr-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tr-col-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-left: 2px;
+}
 
 .pct-badge {
   font-family: 'JetBrains Mono', monospace;
