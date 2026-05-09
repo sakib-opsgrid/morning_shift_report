@@ -693,7 +693,109 @@ async function fetchTrafficFromSheet() {
   btn.disabled = false;
 }
 
-/* ── Traffic: CSV Upload fallback ───────────────────────── */
+/* ── Network: Google Sheet Fetch ────────────────────────── */
+const NETWORK_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT6aD89oOCp2V8v1TbDaeh1RLEq2azL1641GWWYtQtdNlVd-LC7hjG_0vJiv-iv1DRy5t3hmxA2V7Vf/pub?gid=615904792&single=true&output=csv';
+
+// MNO name → Operator code
+const MNO_TO_OP = {
+  grameenphone: 'GP', grameen: 'GP',
+  banglalink: 'BL',
+  robi: 'RB',
+  teletalk: 'TT'
+};
+function mnoToOp(name) {
+  if (!name) return null;
+  const k = name.toLowerCase().replace(/[^a-z]/g, '');
+  for (const [key, val] of Object.entries(MNO_TO_OP)) {
+    if (k.includes(key)) return val;
+  }
+  return null;
+}
+
+async function fetchNetworkFromSheet() {
+  const btn = document.getElementById('fetch-network-btn');
+  btn.textContent = 'Fetching…';
+  btn.disabled = true;
+  setStatus('fetch-network-status', 'Connecting…', 'info');
+
+  try {
+    const res = await fetch(NETWORK_CSV_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    if (!text || text.length < 20) throw new Error('Empty response');
+    parseNetworkCsv(text);
+  } catch(e) {
+    setStatus('fetch-network-status', 'Error: ' + e.message, 'error');
+  } finally {
+    btn.textContent = 'Fetch from Google Sheet';
+    btn.disabled = false;
+  }
+}
+
+function parseNetworkCsv(csvText) {
+  const lines = csvText.trim().split('\n');
+  if (lines.length < 2) { setStatus('fetch-network-status', 'No data', 'error'); return; }
+
+  const headers = splitCsvRow(lines[0]).map(h => h.replace(/"/g,'').trim().toLowerCase());
+
+  // Find column indexes
+  const dateIdx   = headers.findIndex(h => h === 'date');
+  const mnoIdx    = headers.findIndex(h => h.includes('mno') || h.includes('p2p'));
+  const failedIdx = headers.findIndex(h => h === 'failed' || h.includes('failed'));
+
+  if (dateIdx < 0 || mnoIdx < 0 || failedIdx < 0) {
+    setStatus('fetch-network-status', `Columns not found. Headers: ${headers.slice(0,6).join(' | ')}`, 'error');
+    return;
+  }
+
+  // Find the last date that has data
+  let lastDate = '';
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCsvRow(lines[i]);
+    const d = (cols[dateIdx] || '').replace(/"/g,'').trim();
+    if (d) lastDate = d;
+  }
+
+  if (!lastDate) { setStatus('fetch-network-status', 'No date found in sheet', 'error'); return; }
+
+  // Aggregate by operator for last date
+  const opData = {}; // { GP: { times: 0, failed: 0 }, ... }
+  for (let i = 1; i < lines.length; i++) {
+    const cols   = splitCsvRow(lines[i]);
+    const d      = (cols[dateIdx]   || '').replace(/"/g,'').trim();
+    const mno    = (cols[mnoIdx]    || '').replace(/"/g,'').trim();
+    const failed = (cols[failedIdx] || '').replace(/"/g,'').trim();
+    if (d !== lastDate) continue;
+    const op = mnoToOp(mno);
+    if (!op) continue;
+    if (!opData[op]) opData[op] = { times: 0, failed: 0 };
+    opData[op].times++;
+    opData[op].failed += parseInt(failed) || 0;
+  }
+
+  if (!Object.keys(opData).length) {
+    setStatus('fetch-network-status', `No operator data found for last date: ${lastDate}`, 'error');
+    return;
+  }
+
+  // Fill Network Times inputs
+  OPERATORS.forEach(op => {
+    const el = document.querySelector(`.net-times[data-op="${op}"]`);
+    if (el) el.value = opData[op]?.times || 0;
+  });
+
+  // Build status summary
+  const summary = OPERATORS
+    .filter(op => opData[op])
+    .map(op => `${op}: ${opData[op].times} times | Errors: ${opData[op].failed.toLocaleString()}`)
+    .join('  ·  ');
+
+  setStatus('fetch-network-status', `${lastDate} → ${summary}`, 'ok');
+  showToast('Network data loaded');
+  scheduleAutoSave();
+}
+
+
 function parseTrafficCsvUpload(input) {
   const file = input.files[0];
   if (!file) return;
