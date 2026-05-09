@@ -30,46 +30,6 @@
 <!-- ── Main Wrap ──────────────────────────────────────── -->
 <main class="wrap">
 
-  <!-- §CSV Auto-fill -->
-  <div class="card" id="csv-upload-card">
-    <div class="card-header" data-collapse>
-      <div class="card-header-left">
-        <div class="card-icon" style="background:#f0fdf4;color:#16a34a;"></div>
-        <div>
-          <div class="sec-num">AUTO</div>
-          <div class="sec-title">CSV Auto-fill from ELK Export</div>
-        </div>
-      </div>
-      <span class="collapse-icon">▼</span>
-    </div>
-    <div class="card-body">
-      <p style="font-size:12px;color:var(--text-2);margin-bottom:12px;">
-        Upload ELK-exported CSV files below — the form will be filled automatically.
-      </p>
-      <div class="row3">
-        <div class="form-group">
-          <label>1xx MNO CSV</label>
-          <input type="file" id="csv-1xx-mno" accept=".csv" onchange="parseMnoCsv(this)">
-          <div id="csv-mno-status" class="csv-status"></div>
-        </div>
-        <div class="form-group">
-          <label>1xx IPTSP CSV</label>
-          <input type="file" id="csv-1xx-iptsp" accept=".csv" onchange="parseIptspCsv(this)">
-          <div id="csv-iptsp-status" class="csv-status"></div>
-        </div>
-        <div class="form-group">
-          <label>DLR CSV</label>
-          <input type="file" id="csv-dlr" accept=".csv" onchange="parseDlrCsv(this)">
-          <div id="csv-dlr-status" class="csv-status"></div>
-        </div>
-      </div>
-      <div id="csv-preview-area" style="display:none;margin-top:12px;">
-        <div class="sub-label" style="margin-bottom:8px;">Parsed Summary</div>
-        <div id="csv-preview-content" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-2);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:12px;line-height:1.9;"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- §0 Report Header -->
   <div class="card report-header-card">
     <div class="card-header" data-collapse>
@@ -119,7 +79,16 @@
     <div class="card-body">
 
       <!-- 1xx MNO -->
-      <div class="sub-label">1xx — MNO</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="sub-label">1xx — MNO</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="csv-mno-status" class="csv-status"></div>
+          <label style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;white-space:nowrap;">
+            Upload CSV
+            <input type="file" id="csv-1xx-mno" accept=".csv" onchange="parseMnoCsv(this)" style="display:none;">
+          </label>
+        </div>
+      </div>
       <div class="toggle-row">
         <button id="tog-mno-ok"    class="tog ok"  onclick="setTog('mno','ok')">
           <span class="dot"></span> Normal
@@ -138,7 +107,16 @@
       <hr class="divider">
 
       <!-- 1xx IPTSP -->
-      <div class="sub-label">1xx — IPTSP</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="sub-label">1xx — IPTSP</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="csv-iptsp-status" class="csv-status"></div>
+          <label style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;white-space:nowrap;">
+            Upload CSV
+            <input type="file" id="csv-1xx-iptsp" accept=".csv" onchange="parseIptspCsv(this)" style="display:none;">
+          </label>
+        </div>
+      </div>
       <div class="toggle-row">
         <button id="tog-iptsp-ok"    class="tog ok"  onclick="setTog('iptsp','ok')">
           <span class="dot"></span> Normal
@@ -241,6 +219,16 @@
       <span class="collapse-icon">▼</span>
     </div>
     <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span></span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="csv-dlr-status" class="csv-status"></div>
+          <label style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;white-space:nowrap;">
+            Upload CSV
+            <input type="file" id="csv-dlr" accept=".csv" onchange="parseDlrCsv(this)" style="display:none;">
+          </label>
+        </div>
+      </div>
       <div id="dlr-dates" style="display:flex;flex-direction:column;gap:10px;"></div>
       <button class="btn btn-ghost" onclick="addDlrDate()">+ Add Date</button>
       <hr class="divider">
