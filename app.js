@@ -418,10 +418,9 @@ function generateAndCopy() {
 
   let netLines = '';
   OPERATORS.forEach(op => {
-    const t    = parseInt(document.querySelector(`.net-times[data-op="${op}"]`)?.value) || 0;
-    const e504 = parseInt(document.querySelector(`.h5-504[data-op="${op}"]`)?.value)    || 0;
-    const e502 = parseInt(document.querySelector(`.h5-502[data-op="${op}"]`)?.value)    || 0;
-    netLines += `* ${op}: ${t} ${t === 1 ? 'time' : 'times'} | Errors: ${fmtNum(e504 + e502)}\n`;
+    const t = parseInt(document.querySelector(`.net-times[data-op="${op}"]`)?.value) || 0;
+    const e = parseInt(document.getElementById(`net-failed-${op}`)?.textContent) || 0;
+    netLines += `* ${op}: ${t} ${t === 1 ? 'time' : 'times'} | Errors: ${fmtNum(e)}\n`;
   });
   const netOverall = document.getElementById('net-overall')?.value.trim() || '';
 
@@ -778,10 +777,12 @@ function parseNetworkCsv(csvText) {
     return;
   }
 
-  // Fill Network Times inputs
+  // Fill Network Times inputs + Errors spans
   OPERATORS.forEach(op => {
-    const el = document.querySelector(`.net-times[data-op="${op}"]`);
-    if (el) el.value = opData[op]?.times || 0;
+    const elTimes  = document.querySelector(`.net-times[data-op="${op}"]`);
+    const elFailed = document.getElementById(`net-failed-${op}`);
+    if (elTimes)  elTimes.value       = opData[op]?.times  || 0;
+    if (elFailed) elFailed.textContent = opData[op]?.failed || 0;
   });
 
   // Build status summary

@@ -271,9 +271,6 @@
         </button>
       </div>
       <div id="fetch-network-status" class="csv-status" style="margin-bottom:8px;"></div>
-      <p style="font-size:11px;color:var(--text-3);margin-bottom:4px;">
-        504 / 502 / Total — HTTP Status section থেকে auto. শুধু Times দিন।
-      </p>
       <div class="op-grid">
         <div class="op-block">
           <div class="op-name">GP</div>
@@ -281,11 +278,7 @@
             <label>Times (reconnects)</label>
             <input type="number" class="net-times" data-op="GP" placeholder="0" min="0" oninput="scheduleAutoSave()">
           </div>
-          <div class="op-5xx-total" style="margin-top:8px;font-size:11px;">
-            504: <span id="net-504-GP">0</span> &nbsp;|&nbsp;
-            502: <span id="net-502-GP">0</span> &nbsp;|&nbsp;
-            Total: <span id="net-err-GP">0</span>
-          </div>
+          <div class="op-5xx-total" style="margin-top:8px;">Errors: <span id="net-failed-GP">0</span></div>
         </div>
         <div class="op-block">
           <div class="op-name">RB</div>
@@ -293,11 +286,7 @@
             <label>Times</label>
             <input type="number" class="net-times" data-op="RB" placeholder="0" min="0" oninput="scheduleAutoSave()">
           </div>
-          <div class="op-5xx-total" style="margin-top:8px;font-size:11px;">
-            504: <span id="net-504-RB">0</span> &nbsp;|&nbsp;
-            502: <span id="net-502-RB">0</span> &nbsp;|&nbsp;
-            Total: <span id="net-err-RB">0</span>
-          </div>
+          <div class="op-5xx-total" style="margin-top:8px;">Errors: <span id="net-failed-RB">0</span></div>
         </div>
         <div class="op-block">
           <div class="op-name">TT</div>
@@ -305,11 +294,7 @@
             <label>Times</label>
             <input type="number" class="net-times" data-op="TT" placeholder="0" min="0" oninput="scheduleAutoSave()">
           </div>
-          <div class="op-5xx-total" style="margin-top:8px;font-size:11px;">
-            504: <span id="net-504-TT">0</span> &nbsp;|&nbsp;
-            502: <span id="net-502-TT">0</span> &nbsp;|&nbsp;
-            Total: <span id="net-err-TT">0</span>
-          </div>
+          <div class="op-5xx-total" style="margin-top:8px;">Errors: <span id="net-failed-TT">0</span></div>
         </div>
         <div class="op-block">
           <div class="op-name">BL</div>
@@ -317,11 +302,7 @@
             <label>Times</label>
             <input type="number" class="net-times" data-op="BL" placeholder="0" min="0" oninput="scheduleAutoSave()">
           </div>
-          <div class="op-5xx-total" style="margin-top:8px;font-size:11px;">
-            504: <span id="net-504-BL">0</span> &nbsp;|&nbsp;
-            502: <span id="net-502-BL">0</span> &nbsp;|&nbsp;
-            Total: <span id="net-err-BL">0</span>
-          </div>
+          <div class="op-5xx-total" style="margin-top:8px;">Errors: <span id="net-failed-BL">0</span></div>
         </div>
       </div>
       <div class="form-group">
