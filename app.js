@@ -86,19 +86,13 @@ function setTog(key, val) {
   scheduleAutoSave();
 }
 
-/* ── 5xx Auto Total + sync Network ─────────────────────── */
+/* ── 5xx Auto Total ─────────────────────────────────────── */
 function calcTotal(op) {
   const v504  = parseInt(document.querySelector(`.h5-504[data-op="${op}"]`)?.value) || 0;
   const v502  = parseInt(document.querySelector(`.h5-502[data-op="${op}"]`)?.value) || 0;
   const total = v504 + v502;
   const elTotal = document.getElementById(`total-${op}`);
   if (elTotal) elTotal.textContent = total;
-  const n504 = document.getElementById(`net-504-${op}`);
-  const n502 = document.getElementById(`net-502-${op}`);
-  const nErr = document.getElementById(`net-err-${op}`);
-  if (n504) n504.textContent = v504;
-  if (n502) n502.textContent = v502;
-  if (nErr) nErr.textContent = total;
 }
 
 /* ── DLR ────────────────────────────────────────────────── */
@@ -261,7 +255,10 @@ function collectFormData() {
   });
   const netData = {};
   OPERATORS.forEach(op => {
-    netData[op] = { times: document.querySelector(`.net-times[data-op="${op}"]`)?.value || '' };
+    netData[op] = {
+      times:  document.querySelector(`.net-times[data-op="${op}"]`)?.value || '',
+      failed: document.getElementById(`net-failed-${op}`)?.textContent || '0'
+    };
   });
   return {
     date: document.getElementById('rep-date')?.value || '',
@@ -314,8 +311,9 @@ function restoreFormData(data) {
     }
     if (data.netData?.[op]) {
       const elT = document.querySelector(`.net-times[data-op="${op}"]`);
-      if (elT) elT.value = data.netData[op].times;
-      calcTotal(op);
+      const elF = document.getElementById(`net-failed-${op}`);
+      if (elT) elT.value = data.netData[op].times || '';
+      if (elF) elF.textContent = data.netData[op].failed || '0';
     }
   });
   if (data.dlrBlocks?.length) {
