@@ -381,8 +381,10 @@ function showToast(msg, duration = 2500) {
 function generateAndCopy() {
   const dateVal = document.getElementById('rep-date')?.value || '';
   const [y, m, d] = dateVal.split('-');
-  const dateDisp  = dateVal ? `${d}/${m}/${y}` : '—';
+  const dateDisp = dateVal ? `${d}/${m}/${y}` : '—';
+  const author   = document.getElementById('rep-author')?.value.trim() || '';
 
+  // ── 1xx ──
   const txtMno   = togState['mno']   === 'issue'
     ? (document.getElementById('txt-mno-issue')?.value.trim()   || 'Issue — details pending')
     : (document.getElementById('txt-mno-ok')?.value.trim()      || 'Error observed minimal as usual.');
@@ -390,22 +392,28 @@ function generateAndCopy() {
     ? (document.getElementById('txt-iptsp-issue')?.value.trim() || 'Issue — details pending')
     : (document.getElementById('txt-iptsp-ok')?.value.trim()    || 'Error observed minimal as usual.');
 
+  // ── 5xx ──
   const overall5xx = document.getElementById('txt-5xx-overall')?.value.trim() || '';
   let http5xxLines = '';
   OPERATORS.forEach(op => {
-    const e504 = parseInt(document.querySelector(`.h5-504[data-op="${op}"]`)?.value) || 0;
-    const e502 = parseInt(document.querySelector(`.h5-502[data-op="${op}"]`)?.value) || 0;
+    const e504  = parseInt(document.querySelector(`.h5-504[data-op="${op}"]`)?.value) || 0;
+    const e502  = parseInt(document.querySelector(`.h5-502[data-op="${op}"]`)?.value) || 0;
     const total = e504 + e502;
+    if (total === 0) return;
     let detail = '';
     if (e504 > 0) detail += ` (HTTP 504=${e504})`;
     if (e502 > 0) detail += ` (HTTP 502=${e502})`;
     http5xxLines += `* ${op}: ${total}${detail}\n`;
   });
 
+  // ── DLR ──
   let dlrLines = '';
   document.querySelectorAll('.dlr-date-block').forEach(block => {
     const dateIso = block.querySelector('.dlr-date')?.value;
     if (!dateIso) return;
+    const vals = {};
+    block.querySelectorAll('.dlr-val').forEach(inp => { vals[inp.dataset.code] = parseInt(inp.value) || 0; });
+    if (Object.values(vals).every(v => v === 0)) return;
     dlrLines += `Date: ${fmtDateLabel(dateIso)}\n`;
     block.querySelectorAll('.dlr-val').forEach(inp => {
       const codeObj = DLR_CODES.find(c => c.code === inp.dataset.code);
@@ -414,25 +422,29 @@ function generateAndCopy() {
   });
   const dlrOverall = document.getElementById('dlr-overall')?.value.trim() || '';
 
+  // ── Network ──
   let netLines = '';
   OPERATORS.forEach(op => {
     const t = parseInt(document.querySelector(`.net-times[data-op="${op}"]`)?.value) || 0;
-    const e = parseInt(document.getElementById(`net-failed-${op}`)?.textContent) || 0;
+    const e = parseInt(document.getElementById(`net-failed-${op}`)?.textContent)     || 0;
     netLines += `* ${op}: ${t} ${t === 1 ? 'time' : 'times'} | Errors: ${fmtNum(e)}\n`;
   });
   const netOverall = document.getElementById('net-overall')?.value.trim() || '';
 
+  // ── Client Communication ──
   const wa = parseInt(document.getElementById('ch-wa')?.value) || 0;
   const ph = parseInt(document.getElementById('ch-ph')?.value) || 0;
   const em = parseInt(document.getElementById('ch-em')?.value) || 0;
   const tk = parseInt(document.getElementById('ch-tk')?.value) || 0;
 
+  // ── Issues ──
   let issueLines = '';
   if (togState['issue'] === 'issue') {
     const todos = [...document.querySelectorAll('.todo-txt')].map(i => i.value.trim()).filter(Boolean);
     issueLines = todos.length ? `To-do:\n` + todos.map(t => `* ${t}`).join('\n') : 'Pending — details TBD';
   } else { issueLines = 'None.'; }
 
+  // ── Traffic ──
   let trafficLines = '';
   document.querySelectorAll('#traffic-list .tr-row').forEach(row => {
     const rd = row.querySelector('.tr-date')?.value;
@@ -441,7 +453,7 @@ function generateAndCopy() {
     if (rd && rv) trafficLines += `   ${rd} : ${fmtNum(rv)}  |  ${rp}\n`;
   });
 
-  const author = document.getElementById('rep-author')?.value.trim() || '';
+  // ── Compose ──
   let msg = `*System Monitoring Overview Report*\nDate: ${dateDisp}\n`;
   if (author) msg += `Prepared By: ${author}\n`;
   msg += `${'─'.repeat(24)}\n`;
@@ -463,7 +475,7 @@ function generateAndCopy() {
       showToast('Copied to clipboard!');
       const btn = document.getElementById('copy-btn');
       if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy WhatsApp Message'; }, 2500); }
-      saveToHistory(msg, dateDisp);
+      saveToHistory(msg, dateFull);
       saveDraft();
     })
     .catch(() => showToast('Clipboard error — copy manually from preview'));
@@ -585,7 +597,7 @@ function parse1xxCsv(input, statusId, togKey, label) {
       if (isIssue) { if (issueEl) issueEl.value = txt; }
       else         { if (okEl)    okEl.value    = txt; }
 
-      setStatus(statusId, `${total.toLocaleString()} records — ${isIssue ? 'ISSUE (≥20k)' : 'Normal (<20k)'}`, isIssue ? 'error' : 'ok');
+      setStatus(statusId, `${total.toLocaleString()} records — ${isIssue ? 'ISSUE' : 'Normal'}`, isIssue ? 'error' : 'ok');
       showToast(`${label}: ${isIssue ? 'Issue detected' : 'Normal'}`);
       scheduleAutoSave();
     } catch(err) {
