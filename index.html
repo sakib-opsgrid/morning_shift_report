@@ -347,13 +347,21 @@
       <span class="collapse-icon">▼</span>
     </div>
     <div class="card-body">
-      <div class="toggle-row">
-        <button id="tog-issue-ok"    class="tog ok"    onclick="setTog('issue','ok')">
-          <span class="dot"></span> None
-        </button>
-        <button id="tog-issue-issue" class="tog"       onclick="setTog('issue','issue')">
-          <span class="dot"></span> Has Issues
-        </button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div class="toggle-row" style="margin:0;">
+          <button id="tog-issue-ok"    class="tog ok"  onclick="setTog('issue','ok')">
+            <span class="dot"></span> None
+          </button>
+          <button id="tog-issue-issue" class="tog"     onclick="setTog('issue','issue')">
+            <span class="dot"></span> Has Issues
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div id="fetch-issues-status" class="csv-status"></div>
+          <button class="btn btn-ghost" id="fetch-issues-btn" onclick="fetchIssuesFromDocs()" style="font-size:12px;padding:5px 12px;white-space:nowrap;">
+            Fetch from Google Docs
+          </button>
+        </div>
       </div>
       <div id="det-issue" style="display:none;">
         <div class="sub-label" style="margin-top:4px;">To-do / Pending Items</div>

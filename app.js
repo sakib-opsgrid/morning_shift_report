@@ -872,3 +872,105 @@ function parseSheetDate(raw) {
   }
   return raw;
 }
+
+/* ── Google Docs Issues Fetch ───────────────────────────── */
+const DOCS_URL = 'https://docs.google.com/document/d/1KT9s-JIz8fe98AorHW9kybA64_xYkVtv5qdf3k9nmas/export?format=txt';
+
+async function fetchIssuesFromDocs() {
+  const btn = document.getElementById('fetch-issues-btn');
+  btn.textContent = 'Fetching…';
+  btn.disabled = true;
+  setStatus('fetch-issues-status', 'Connecting…', 'info');
+
+  try {
+    const res = await fetch(DOCS_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    parseDocsIssues(text);
+  } catch(e) {
+    setStatus('fetch-issues-status', 'Error: ' + e.message, 'error');
+  } finally {
+    btn.textContent = 'Fetch from Google Docs';
+    btn.disabled = false;
+  }
+}
+
+function parseDocsIssues(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  // Find Issues table — starts after a line containing "Issues" + "Description" + "Status"
+  let issuesStartIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^issues$/i.test(lines[i]) || lines[i].toLowerCase() === 'issues') {
+      // Check next line is "Description" or similar
+      if (lines[i+1] && /description/i.test(lines[i+1])) {
+        issuesStartIdx = i + 2; // skip header row (Issues | Description | Status)
+        // also skip "Status" if it's on its own line
+        if (lines[issuesStartIdx] && /^status$/i.test(lines[issuesStartIdx])) issuesStartIdx++;
+        break;
+      }
+    }
+  }
+
+  if (issuesStartIdx < 0) {
+    setStatus('fetch-issues-status', 'Issues table not found in document', 'error');
+    return;
+  }
+
+  const STATUS_WORDS = new Set(['Pre-Prod','Follow-up','Ongoing','Completed','Pending','Closed','In Progress','Follow up']);
+  const issues = [];
+  let i = issuesStartIdx;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Stop at end markers
+    if (/handed over/i.test(line) || /^notice$/i.test(line)) break;
+
+    // Skip pure status lines at start of loop
+    if (STATUS_WORDS.has(line)) { i++; continue; }
+
+    // This line = issue name
+    const issueName = line;
+    i++;
+
+    // Collect description lines
+    let descParts = [];
+    let status = '';
+
+    while (i < lines.length) {
+      const next = lines[i];
+      if (/handed over/i.test(next)) { i = lines.length; break; }
+      if (STATUS_WORDS.has(next)) {
+        status = next;
+        i++;
+        break;
+      }
+      descParts.push(next);
+      i++;
+    }
+
+    const desc = descParts.join(' ').trim();
+    if (issueName && desc) {
+      issues.push({ issue: issueName, desc, status });
+    }
+  }
+
+  if (!issues.length) {
+    setStatus('fetch-issues-status', 'No issues found — check document format', 'error');
+    return;
+  }
+
+  // Fill into Major/Pending Issues section
+  setTog('issue', 'issue');
+  const todoList = document.getElementById('todo-list');
+  todoList.innerHTML = '';
+  issues.forEach(({ issue, desc, status }) => {
+    const statusPart = status ? ` [${status}]` : '';
+    addTodo(`${issue}: ${desc}${statusPart}`);
+  });
+
+  setStatus('fetch-issues-status', `${issues.length} issues loaded`, 'ok');
+  showToast(`${issues.length} issues fetched`);
+  scheduleAutoSave();
+}
