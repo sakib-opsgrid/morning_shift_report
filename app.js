@@ -874,7 +874,7 @@ function parseSheetDate(raw) {
 }
 
 /* ── Google Docs Issues Fetch ───────────────────────────── */
-const DOCS_URL = 'https://docs.google.com/document/d/1KT9s-JIz8fe98AorHW9kybA64_xYkVtv5qdf3k9nmas/export?format=txt';
+const DOCS_URL = 'https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub?output=text';
 
 async function fetchIssuesFromDocs() {
   const btn = document.getElementById('fetch-issues-btn');
