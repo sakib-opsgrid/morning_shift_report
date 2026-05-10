@@ -1,7 +1,7 @@
 # Morning Shift Report
 **Infozillion Teletech Bd Ltd · Service Assurance**
 
-Daily shift reporting tool for the Service Assurance team. Supports CSV auto-fill from ELK exports and live data fetch from Google Sheets.
+Daily shift reporting tool for the Service Assurance team. Auto-fills from ELK CSV exports and Google Sheets.
 
 ---
 
@@ -9,8 +9,8 @@ Daily shift reporting tool for the Service Assurance team. Supports CSV auto-fil
 
 | Feature | Description |
 |---|---|
-| CSV Auto-fill | Upload ELK-exported CSVs — 1xx MNO, 1xx IPTSP, DLR auto-parsed |
-| Google Sheet Sync | Traffic Trend fetched directly from Daily Traffic Monitor sheet |
+| CSV Auto-fill | Upload ELK CSVs directly in each section — form fills automatically |
+| Google Sheet Sync | Traffic Trend and Network data fetched live from Google Sheets |
 | Auto-save | Draft saved to browser automatically while typing |
 | Report History | Last 30 generated reports saved, copyable anytime |
 | Dark Mode | Light/dark theme toggle, saved across sessions |
@@ -25,7 +25,7 @@ Daily shift reporting tool for the Service Assurance team. Supports CSV auto-fil
 
 ```
 /
-├── index.html   ← Main page (structure + upload UI)
+├── index.html   ← Main page
 ├── style.css    ← All styles (theme, layout, dark mode)
 ├── app.js       ← All logic (CSV parsing, Sheet fetch, auto-save, history)
 └── README.md    ← This file
@@ -35,56 +35,76 @@ Daily shift reporting tool for the Service Assurance team. Supports CSV auto-fil
 
 ## Daily Workflow
 
-### Step 1 — Upload CSVs (ELK exports)
+### Step 1 — HTTP Status (1xx)
 
-Go to the **"AUTO — CSV Auto-fill"** section at the top:
+**1xx MNO** and **1xx IPTSP** sections each have an **Upload CSV** button.
 
-| File | What to upload | What gets filled |
-|---|---|---|
-| **1xx MNO CSV** | ELK export for transactional MNO CDR | 1xx parsed by operator (GP/RB/BL/TT) shown in summary |
-| **1xx IPTSP CSV** | ELK export for transactional IPTSP CDR | 1xx parsed by gateway shown in summary |
-| **DLR CSV** | ELK export for DLR 1xxx report | Auto-fills DLR section (1000 / 1020 / 1052 counts) |
+- Upload the ELK Discover export CSV for each
+- Required columns: `ansResponseCode`, `applicableSmsGateway`, `clientId`
+- Total < 20,000 → toggle set to **Normal**, textarea filled automatically
+- Total ≥ 20,000 → toggle set to **Issue**, clients with ≥20k errors listed automatically
 
-### Step 2 — Fetch Traffic Trend
+### Step 2 — Delay / DLR
 
-In the **Traffic Trend** section, click **"Fetch from Google Sheet"**.
-Automatically loads the last 6 days with Day End values and calculates % change.
+**DLR** section has an **Upload CSV** button.
 
-### Step 3 — Fill remaining fields manually
+- Upload the ELK Discover export CSV
+- Required column: `message_body` (must contain `statusCode=1000`, `statusCode=1020`, or `statusCode=1052`)
+- Values auto-filled into the last date block
 
-- **HTTP Status 5xx** — from nightly Google Sheet update
-- **Network (P2P / NTTN)** — Times from ELK dashboard (Errors auto-synced from 5xx)
+### Step 3 — Network (P2P / NTTN)
+
+Click **Fetch from Google Sheet** in the Network section.
+
+- Loads the last date's data automatically
+- Per operator: Times (reconnects) and total Errors (FAILED column sum)
+
+### Step 4 — Traffic Trend
+
+Click **Fetch from Google Sheet** in the Traffic Trend section.
+
+- Loads last 6 days with Day End values automatically
+- % change vs previous day calculated automatically
+
+### Step 5 — Fill remaining fields manually
+
+- **5xx** — from nightly Google Sheet update
 - **Client Communication** — WhatsApp / Phone / Email / Ticket counts
-- **Major / Pending Issues** — toggle and add to-do items if needed
+- **Major / Pending Issues** — toggle and add items if needed
 
-### Step 4 — Generate
+### Step 6 — Generate
 
-Click **"Copy WhatsApp Message"** → paste into the group.
+Click **Copy WhatsApp Message** → paste into the group.
 
 ---
 
 ## CSV Format Requirements
 
-### 1xx MNO / IPTSP CSV
-ELK Discover export — required columns:
-- `ansResponseCode` — response code (1000–1099 range counted)
-- `applicableSmsGateway` — gateway name (GrameenPhone / Banglalink / Robi / Teletalk for MNO; Link3 / ADN etc. for IPTSP)
+### 1xx MNO / IPTSP CSV (ELK Discover export)
+Required columns:
+- `ansResponseCode` — 1xxx range counted
+- `applicableSmsGateway` — gateway/operator name
+- `clientId` — client identifier
 
-### DLR CSV
-ELK Discover export — required column:
-- `message_body` — log line containing `statusCode=1000`, `statusCode=1020`, or `statusCode=1052`
+### DLR CSV (ELK Discover export)
+Required column:
+- `message_body` — must contain `statusCode=1000`, `statusCode=1020`, or `statusCode=1052`
 
 ---
 
-## Google Sheet Setup
+## Google Sheets Setup
 
-The Traffic Trend sheet must be shared as **"Anyone with the link can view"**.
-Required columns: `Date`, `Day End`.
+Both sheets must be published via **File → Share → Publish to web → CSV**.
 
-To change the sheet, update in `app.js`:
+| Sheet | Data | Published URL stored in |
+|---|---|---|
+| Daily Traffic Monitor | Day End volume per date | `app.js` → `PUBLISHED_CSV_URL` |
+| Network P2P Log | MNO, Event times, Failed count | `app.js` → `NETWORK_CSV_URL` |
+
+To update a sheet URL, change these constants in `app.js`:
 ```javascript
-const SHEET_ID  = '1iXJXX0eAyVcUKXyj9cF8SPpD4knJCzed';
-const SHEET_GID = '1186344439';
+const PUBLISHED_CSV_URL = '...'; // Traffic sheet
+const NETWORK_CSV_URL   = '...'; // Network sheet
 ```
 
 ---
@@ -96,13 +116,13 @@ const SHEET_GID = '1186344439';
 3. Go to **Settings → Pages → Source:** `main` branch → `/ (root)` → Save
 4. Live at: `https://<your-username>.github.io/shift-report/`
 
-> Google Sheet fetch works on GitHub Pages — data is fetched directly from the browser, no server needed.
+> Google Sheet fetch requires GitHub Pages (https). It will not work when opening the file locally.
 
 ---
 
 ## Privacy
 
-All form data stored **locally in the browser** via `localStorage`. No data sent to any server except Google Sheets (read-only fetch).
+All form data stored locally in the browser via `localStorage`. No data is sent to any server except Google Sheets (read-only fetch).
 
 ---
 
