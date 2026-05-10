@@ -128,3 +128,19 @@ All form data stored locally in the browser via `localStorage`. No data is sent 
 
 *Built for Infozillion Teletech Bd Ltd · Service Assurance Team*
 *© 2026 Najmaz Sakib*
+
+### Major / Pending Issues — Google Docs Fetch
+
+Issues section এ **"Fetch from Google Docs"** button আছে.
+
+- Shift handover Google Doc থেকে automatically Issues table parse করে
+- প্রতিটা issue আলাদা row এ আসে: `Issue Name: Description [Status]`
+- Toggle automatically **"Has Issues"** এ set হয়
+- Manually edit করা যাবে fetch করার পরেও
+
+**Doc URL** পরিবর্তন করতে `app.js` এ:
+```javascript
+const DOCS_URL = 'https://docs.google.com/document/d/e/.../pub';
+```
+
+**Requirement:** Google Doc টা **File → Share → Publish to web** করা থাকতে হবে।

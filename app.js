@@ -874,7 +874,9 @@ function parseSheetDate(raw) {
 }
 
 /* ── Google Docs Issues Fetch ───────────────────────────── */
-const DOCS_URL = 'https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub?output=text';
+
+/* ── Google Docs Issues Fetch ───────────────────────────── */
+const DOCS_URL = 'https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub';
 
 async function fetchIssuesFromDocs() {
   const btn = document.getElementById('fetch-issues-btn');
@@ -885,8 +887,8 @@ async function fetchIssuesFromDocs() {
   try {
     const res = await fetch(DOCS_URL);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    parseDocsIssues(text);
+    const html = await res.text();
+    parseDocsIssues(html);
   } catch(e) {
     setStatus('fetch-issues-status', 'Error: ' + e.message, 'error');
   } finally {
@@ -895,73 +897,54 @@ async function fetchIssuesFromDocs() {
   }
 }
 
-function parseDocsIssues(text) {
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+function parseDocsIssues(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const tables = doc.querySelectorAll('table');
 
-  // Find Issues table — starts after a line containing "Issues" + "Description" + "Status"
-  let issuesStartIdx = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (/^issues$/i.test(lines[i]) || lines[i].toLowerCase() === 'issues') {
-      // Check next line is "Description" or similar
-      if (lines[i+1] && /description/i.test(lines[i+1])) {
-        issuesStartIdx = i + 2; // skip header row (Issues | Description | Status)
-        // also skip "Status" if it's on its own line
-        if (lines[issuesStartIdx] && /^status$/i.test(lines[issuesStartIdx])) issuesStartIdx++;
-        break;
-      }
+  // Find Issues table — has "Issues" and "Description" in header
+  let issuesTable = null;
+  for (const table of tables) {
+    const firstRow = table.querySelector('tr');
+    if (!firstRow) continue;
+    const text = firstRow.textContent.toLowerCase();
+    if (text.includes('issues') && text.includes('description')) {
+      issuesTable = table;
+      break;
     }
   }
 
-  if (issuesStartIdx < 0) {
-    setStatus('fetch-issues-status', 'Issues table not found in document', 'error');
+  if (!issuesTable) {
+    setStatus('fetch-issues-status', 'Issues table not found', 'error');
     return;
   }
 
-  const STATUS_WORDS = new Set(['Pre-Prod','Follow-up','Ongoing','Completed','Pending','Closed','In Progress','Follow up']);
+  const rows = issuesTable.querySelectorAll('tr');
   const issues = [];
-  let i = issuesStartIdx;
+  let lastIssueName = '';
 
-  while (i < lines.length) {
-    const line = lines[i];
+  for (let i = 1; i < rows.length; i++) {
+    const cells = rows[i].querySelectorAll('td');
+    if (cells.length < 2) continue;
 
-    // Stop at end markers
-    if (/handed over/i.test(line) || /^notice$/i.test(line)) break;
+    const col0   = cells[0]?.textContent.trim();
+    const col1   = cells[1]?.textContent.trim();
+    const col2   = cells[2]?.textContent.trim() || '';
 
-    // Skip pure status lines at start of loop
-    if (STATUS_WORDS.has(line)) { i++; continue; }
+    if (!col1) continue;
 
-    // This line = issue name
-    const issueName = line;
-    i++;
+    const issueName = col0 || lastIssueName;
+    if (col0) lastIssueName = col0;
 
-    // Collect description lines
-    let descParts = [];
-    let status = '';
-
-    while (i < lines.length) {
-      const next = lines[i];
-      if (/handed over/i.test(next)) { i = lines.length; break; }
-      if (STATUS_WORDS.has(next)) {
-        status = next;
-        i++;
-        break;
-      }
-      descParts.push(next);
-      i++;
-    }
-
-    const desc = descParts.join(' ').trim();
-    if (issueName && desc) {
-      issues.push({ issue: issueName, desc, status });
-    }
+    const shortDesc = col1.length > 120 ? col1.slice(0, 117) + '…' : col1;
+    issues.push({ issue: issueName, desc: shortDesc, status: col2 });
   }
 
   if (!issues.length) {
-    setStatus('fetch-issues-status', 'No issues found — check document format', 'error');
+    setStatus('fetch-issues-status', 'No issues found in table', 'error');
     return;
   }
 
-  // Fill into Major/Pending Issues section
   setTog('issue', 'issue');
   const todoList = document.getElementById('todo-list');
   todoList.innerHTML = '';
