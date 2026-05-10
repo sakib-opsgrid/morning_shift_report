@@ -38,26 +38,21 @@ async function tryFetch(label, url) {
 async function runTest() {
   document.getElementById('out').innerHTML = '';
 
-  const urls = [
-    ['published txt', `https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub?output=text`],
-    ['published html',`https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub`],
-  ];
+  const url = 'https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub?output=text';
 
-  for (const [label, url] of urls) {
-    const text = await tryFetch(label, url);
-    if (text && text.length > 100 && !text.startsWith('{')) {
-      log(`\n✓ Working URL: ${url}`, 'ok');
-
-      // Try to find Issues section
-      const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-      log(`Total lines: ${lines.length}`, 'info');
-      const issueIdx = lines.findIndex(l => /^issues$/i.test(l));
-      log(`"Issues" found at line: ${issueIdx}`, issueIdx >= 0 ? 'ok' : 'err');
-      if (issueIdx >= 0) {
-        log(`Lines ${issueIdx} to ${issueIdx+15}:<pre>${lines.slice(issueIdx, issueIdx+15).join('\n')}</pre>`, '');
-      }
-      break;
-    }
+  log('Fetching…', 'info');
+  try {
+    const res = await fetch(url);
+    log(`Status: ${res.status}`, res.ok ? 'ok' : 'err');
+    const text = await res.text();
+    const lines = text.split('\n');
+    log(`Total lines: ${lines.length}`, 'ok');
+    log('All lines (numbered):');
+    lines.forEach((l, i) => {
+      if (l.trim()) log(`[${i}] ${JSON.stringify(l)}`);
+    });
+  } catch(e) {
+    log(`ERROR: ${e.name}: ${e.message}`, 'err');
   }
   log('<br>Done.', 'info');
 }
