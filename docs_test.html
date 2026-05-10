@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Docs Fetch Test</title>
+<style>
+body { font-family: monospace; padding: 20px; background: #0d1117; color: #e6edf3; }
+button { background: #238636; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; margin: 4px; }
+.ok  { color: #3fb950; } .err { color: #f85149; } .info { color: #58a6ff; }
+pre  { background: #161b22; padding: 12px; border-radius: 8px; white-space: pre-wrap; word-break: break-all; font-size: 12px; max-height: 300px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<h3>Google Docs Fetch Test</h3>
+<button onclick="runTest()">Run Test</button>
+<div id="out"></div>
+
+<script>
+const DOC_ID = '1KT9s-JIz8fe98AorHW9kybA64_xYkVtv5qdf3k9nmas';
+
+function log(msg, cls) {
+  document.getElementById('out').innerHTML += `<div class="${cls||''}">${msg}</div>`;
+}
+
+async function tryFetch(label, url) {
+  log(`<br><b>${label}</b>`, 'info');
+  try {
+    const res = await fetch(url);
+    log(`Status: ${res.status}`, res.ok ? 'ok' : 'err');
+    const text = await res.text();
+    log(`Length: ${text.length} chars`, 'ok');
+    log(`First 300 chars:<pre>${text.slice(0,300).replace(/</g,'&lt;')}</pre>`);
+    return text;
+  } catch(e) {
+    log(`ERROR: ${e.name}: ${e.message}`, 'err');
+    return null;
+  }
+}
+
+async function runTest() {
+  document.getElementById('out').innerHTML = '';
+  const url = 'https://docs.google.com/document/d/e/2PACX-1vRERLiLcFntYsr7ae6voWrNyCHXgC4lFMQzlRgnlQA1i2F0e5uSjLcp81j8XZ5hQcsVygFeP4OFOP29/pub?output=text';
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+    // Show raw with \n and \r visible
+    log('<pre>' + text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\r/g,'[CR]').replace(/\n/g,'[LF]\n') + '</pre>');
+  } catch(e) {
+    log('ERROR: ' + e.message, 'err');
+  }
+}
+</script>
+</body>
+</html>
