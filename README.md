@@ -1,7 +1,7 @@
 # Morning Shift Report
 **Infozillion Teletech Bd Ltd · Service Assurance**
 
-A professional daily shift reporting tool for the Service Assurance team. Automatically pulls data from ELK CSV exports and Google Sheets, reducing manual effort and ensuring consistent reports every morning.
+A premium, browser-based daily shift reporting tool for the Service Assurance team. Automatically pulls data from ELK CSV exports and Google Sheets, reducing manual effort and ensuring consistent reports every morning.
 
 ---
 
@@ -9,7 +9,9 @@ A professional daily shift reporting tool for the Service Assurance team. Automa
 
 | Feature | Description |
 |---|---|
-| CSV Auto-fill | Upload ELK Discover CSV exports directly inside each section |
+| Drag & Drop CSV | Drop CSV files directly onto upload zones, or click to browse |
+| CSV Auto-fill | ELK Discover CSV exports parsed and filled automatically across sections |
+| HTTP 5xx Auto-fill | Upload one CSV to auto-fill HTTP 500/501/502/503/504 counts per operator |
 | Google Sheets Sync | Traffic Trend and Network data fetched live with one click |
 | Auto-save | Form data saved to browser automatically — never lose a draft |
 | Report History | Last 30 generated reports stored and copyable anytime |
@@ -18,6 +20,7 @@ A professional daily shift reporting tool for the Service Assurance team. Automa
 | WhatsApp Copy | One-click copy of a formatted, WhatsApp-ready report |
 | Print / PDF | Clean print layout for PDF export |
 | Mobile Responsive | Fully usable on phones and tablets |
+| Premium UI | DM Sans / DM Mono / Instrument Serif typography, warm minimal theme |
 
 ---
 
@@ -37,46 +40,58 @@ A professional daily shift reporting tool for the Service Assurance team. Automa
 
 ### 1. HTTP Status — 1xx MNO & IPTSP
 
-Each sub-section has an **Upload CSV** button.
+Each sub-section has a **drag & drop CSV zone**.
 
-- Upload the ELK Discover export for MNO and IPTSP separately
+- Drop (or click to upload) the ELK Discover export for MNO and IPTSP separately
 - Required columns: `ansResponseCode`, `applicableSmsGateway`, `clientId`
 - Total < 20,000 → status set to **Normal** automatically
 - Total ≥ 20,000 → status set to **Issue**, clients exceeding 20k listed automatically
 
-### 2. Delay / DLR
+### 2. HTTP Status — 4xx / 5xx (Per Operator)
 
-The DLR section has an **Upload CSV** button.
+A single CSV upload zone auto-fills HTTP **500 / 501 / 502 / 503 / 504** counts for every operator (GP, RB, TT, BL).
 
-- Upload the ELK Discover export for DLR
+- Required columns: `ans_type` (or `ansType`), and any column containing `event` (e.g. `event.original`)
+- Operator is detected from `ans_type` (matches GP/Grameenphone, RB/Robi, TT/Teletalk, BL/Banglalink)
+- HTTP status code is extracted from the `event.original` log line
+- **CSV upload is optional** — every code box can also be filled in manually by expanding an operator card
+- Each operator card shows a live total once any code has a value
+
+### 3. Delay / DLR
+
+The DLR section has a **drag & drop CSV zone**.
+
+- Drop (or click to upload) the ELK Discover export for DLR
 - Required column: `message_body` (must contain `statusCode=1000`, `statusCode=1020`, or `statusCode=1052`)
 - Counts are automatically filled into the last date block
 
-### 3. Network — P2P / NTTN
+### 4. Network — P2P / NTTN
 
 Click **Fetch from Google Sheet** in the Network section.
 
 - Reads the last available date from the P2P log sheet
-- Fills each operator's reconnect times and total error count automatically
+- Required columns: `DATE`, `IMPACTED_OPERATOR` (operator name — GP/Grameenphone, RB/Robi, TT/Teletalk, BL/Banglalink), `FAILED`
+- Fills each operator's reconnect **times** (row count for that date) and total **failed/error** count automatically
+- Overall Network Status remark refers to **NTTN connectivity only**
 
-### 4. Traffic Trend
+### 5. Traffic Trend
 
 Click **Fetch from Google Sheet** in the Traffic Trend section.
 
 - Loads the last 6 days with Day End volume values
 - Calculates percentage change vs. the previous day automatically
+- If the live fetch fails, a manual CSV upload fallback appears automatically
 
-### 5. Major / Pending Issues
+### 6. Major / Pending Issues
 
 Toggle **Has Issues** and add items manually using **+ Add Item**.
 
-### 6. Remaining Fields (Manual)
+### 7. Remaining Fields (Manual)
 
-- **HTTP Status 5xx** — from the nightly Google Sheet update
 - **Client Communication** — WhatsApp / Phone / Email / Ticket counts
-- **Overall status remarks** — pre-filled with defaults, editable
+- **Overall status remarks** — pre-filled with sensible defaults, fully editable
 
-### 7. Generate Report
+### 8. Generate Report
 
 Click **Copy WhatsApp Message** → paste directly into the shift group.
 
@@ -92,6 +107,13 @@ Click **Copy WhatsApp Message** → paste directly into the shift group.
 | `applicableSmsGateway` | Gateway or operator name |
 | `clientId` | Client identifier |
 
+### 4xx / 5xx HTTP (ELK Discover export)
+
+| Column | Description |
+|---|---|
+| `ans_type` | Used to detect operator (GP, RB, TT, BL) |
+| `event.original` (or any column containing `event`) | Log line containing `HTTP/x.x <code>` — codes 500–504 are counted |
+
 ### DLR (ELK Discover export)
 
 | Column | Description |
@@ -104,10 +126,10 @@ Click **Copy WhatsApp Message** → paste directly into the shift group.
 
 Both sheets must be published before use via **File → Share → Publish to web → CSV**.
 
-| Sheet | Used For |
-|---|---|
-| Daily Traffic Monitor | Traffic Trend section |
-| Network P2P Log | Network section |
+| Sheet | Used For | Required Columns |
+|---|---|---|
+| Daily Traffic Monitor | Traffic Trend section | `Date`, `Day End` |
+| Network P2P Log | Network section | `DATE`, `IMPACTED_OPERATOR`, `FAILED` |
 
 To update source URLs, edit the following constants in `app.js`:
 
@@ -115,6 +137,8 @@ To update source URLs, edit the following constants in `app.js`:
 const PUBLISHED_CSV_URL = '...'; // Daily Traffic Monitor sheet
 const NETWORK_CSV_URL   = '...'; // Network P2P log sheet
 ```
+
+If a sheet's column headers ever change, update the matching logic inside `parseTrafficCsv()` or `parseNetworkCsv()` in `app.js` accordingly.
 
 ---
 

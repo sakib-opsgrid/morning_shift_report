@@ -58,7 +58,7 @@
         </div>
         <div class="form-group">
           <label>Prepared By</label>
-          <input type="text" id="rep-author" placeholder="e.g. Najmaz Sakib">
+          <input type="text" id="rep-author" placeholder="e.g. Name">
         </div>
       </div>
     </div>
@@ -83,10 +83,10 @@
         <div class="sub-label">1xx — MNO</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div id="csv-mno-status" class="csv-status"></div>
-          <label style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;white-space:nowrap;">
-            Upload CSV
+          <div class="drop-zone" id="drop-mno" onclick="document.getElementById('csv-1xx-mno').click()" ondragover="handleDragOver(event,'drop-mno')" ondragleave="handleDragLeave('drop-mno')" ondrop="handleDrop(event,'csv-1xx-mno',parseMnoCsv)">
+            <span class="drop-zone-icon">⬆</span><span class="drop-zone-text">Drop CSV or click</span>
             <input type="file" id="csv-1xx-mno" accept=".csv" onchange="parseMnoCsv(this)" style="display:none;">
-          </label>
+          </div>
         </div>
       </div>
       <div class="toggle-row">
@@ -111,10 +111,10 @@
         <div class="sub-label">1xx — IPTSP</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div id="csv-iptsp-status" class="csv-status"></div>
-          <label style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;white-space:nowrap;">
-            Upload CSV
+          <div class="drop-zone" id="drop-iptsp" onclick="document.getElementById('csv-1xx-iptsp').click()" ondragover="handleDragOver(event,'drop-iptsp')" ondragleave="handleDragLeave('drop-iptsp')" ondrop="handleDrop(event,'csv-1xx-iptsp',parseIptspCsv)">
+            <span class="drop-zone-icon">⬆</span><span class="drop-zone-text">Drop CSV or click</span>
             <input type="file" id="csv-1xx-iptsp" accept=".csv" onchange="parseIptspCsv(this)" style="display:none;">
-          </label>
+          </div>
         </div>
       </div>
       <div class="toggle-row">
@@ -134,72 +134,21 @@
 
       <hr class="divider">
 
-      <!-- 5xx -->
-      <div class="sub-label">5xx Server Errors — Per Operator</div>
-      <div class="op-grid">
-        <!-- GP -->
-        <div class="op-block">
-          <div class="op-name">GP</div>
-          <div class="form-group">
-            <label>HTTP 504</label>
-            <input type="number" class="h5-504" data-op="GP" placeholder="0" min="0"
-              oninput="calcTotal('GP');scheduleAutoSave()">
-          </div>
-          <div class="form-group" style="margin-top:6px;">
-            <label>HTTP 502</label>
-            <input type="number" class="h5-502" data-op="GP" placeholder="0" min="0"
-              oninput="calcTotal('GP');scheduleAutoSave()">
-          </div>
-          <div class="op-5xx-total">Total: <span id="total-GP">0</span></div>
-        </div>
-        <!-- RB -->
-        <div class="op-block">
-          <div class="op-name">RB</div>
-          <div class="form-group">
-            <label>HTTP 504</label>
-            <input type="number" class="h5-504" data-op="RB" placeholder="0" min="0"
-              oninput="calcTotal('RB');scheduleAutoSave()">
-          </div>
-          <div class="form-group" style="margin-top:6px;">
-            <label>HTTP 502</label>
-            <input type="number" class="h5-502" data-op="RB" placeholder="0" min="0"
-              oninput="calcTotal('RB');scheduleAutoSave()">
-          </div>
-          <div class="op-5xx-total">Total: <span id="total-RB">0</span></div>
-        </div>
-        <!-- TT -->
-        <div class="op-block">
-          <div class="op-name">TT</div>
-          <div class="form-group">
-            <label>HTTP 504</label>
-            <input type="number" class="h5-504" data-op="TT" placeholder="0" min="0"
-              oninput="calcTotal('TT');scheduleAutoSave()">
-          </div>
-          <div class="form-group" style="margin-top:6px;">
-            <label>HTTP 502</label>
-            <input type="number" class="h5-502" data-op="TT" placeholder="0" min="0"
-              oninput="calcTotal('TT');scheduleAutoSave()">
-          </div>
-          <div class="op-5xx-total">Total: <span id="total-TT">0</span></div>
-        </div>
-        <!-- BL -->
-        <div class="op-block">
-          <div class="op-name">BL</div>
-          <div class="form-group">
-            <label>HTTP 504</label>
-            <input type="number" class="h5-504" data-op="BL" placeholder="0" min="0"
-              oninput="calcTotal('BL');scheduleAutoSave()">
-          </div>
-          <div class="form-group" style="margin-top:6px;">
-            <label>HTTP 502</label>
-            <input type="number" class="h5-502" data-op="BL" placeholder="0" min="0"
-              oninput="calcTotal('BL');scheduleAutoSave()">
-          </div>
-          <div class="op-5xx-total">Total: <span id="total-BL">0</span></div>
+      <!-- 4xx/5xx HTTP -->
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="sub-label" style="margin:0;">HTTP 500 / 501 / 502 / 503 / 504 — Per Operator</div>
+      </div>
+      <div class="upload-zone" id="zone-http5xx" style="margin:8px 0 14px;">
+        <input type="file" id="csv-http5xx" accept=".csv" onchange="parseHttp5xxCsv(this)">
+        <div class="upload-zone__inner">
+          <div class="upload-icon">📂</div>
+          <div class="upload-label">Drop <strong>HTTP CSV</strong> or click — auto-fills codes below (optional, manual entry also works)</div>
+          <div class="upload-status" id="csv-http5xx-status"></div>
         </div>
       </div>
+      <div class="src-grid" id="http5xx-source-list"></div>
 
-      <div class="form-group">
+      <div class="form-group" style="margin-top:12px;">
         <label>Overall 5xx Remark</label>
         <textarea id="txt-5xx-overall">Minimal fluctuations and errors as usual (All Connectivity)</textarea>
       </div>
@@ -223,10 +172,10 @@
         <span></span>
         <div style="display:flex;align-items:center;gap:8px;">
           <div id="csv-dlr-status" class="csv-status"></div>
-          <label style="font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;white-space:nowrap;">
-            Upload CSV
+          <div class="drop-zone" id="drop-dlr" onclick="document.getElementById('csv-dlr').click()" ondragover="handleDragOver(event,'drop-dlr')" ondragleave="handleDragLeave('drop-dlr')" ondrop="handleDrop(event,'csv-dlr',parseDlrCsv)">
+            <span class="drop-zone-icon">⬆</span><span class="drop-zone-text">Drop CSV or click</span>
             <input type="file" id="csv-dlr" accept=".csv" onchange="parseDlrCsv(this)" style="display:none;">
-          </label>
+          </div>
         </div>
       </div>
       <div id="dlr-dates" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -294,7 +243,7 @@
       </div>
       <div class="form-group">
         <label>Overall Network Status</label>
-        <textarea id="net-overall">Minimal fluctuations and errors as usual (All Connectivity)</textarea>
+        <textarea id="net-overall">Minimal fluctuations and errors as usual</textarea>
       </div>
     </div>
   </div>

@@ -6,6 +6,7 @@
 'use strict';
 
 const OPERATORS = ['GP', 'RB', 'TT', 'BL'];
+const HTTP_CODES = ['500', '501', '502', '503', '504'];
 const DLR_CODES = [
   { code: '1000', label: '1000 Success' },
   { code: '1020', label: '1020 Internal Server Error' },
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initDate();
   initToggles();
+  buildHttp5xxSources();
   initDlr();
   initTraffic();
   renderHistory();
@@ -86,14 +88,142 @@ function setTog(key, val) {
   scheduleAutoSave();
 }
 
-/* ── 5xx Auto Total ─────────────────────────────────────── */
-function calcTotal(op) {
-  const v504  = parseInt(document.querySelector(`.h5-504[data-op="${op}"]`)?.value) || 0;
-  const v502  = parseInt(document.querySelector(`.h5-502[data-op="${op}"]`)?.value) || 0;
-  const total = v504 + v502;
-  const elTotal = document.getElementById(`total-${op}`);
-  if (elTotal) elTotal.textContent = total;
+/* ── 4xx/5xx HTTP Source Grid (500-504, per operator) ──── */
+function buildHttp5xxSources() {
+  const sl = document.getElementById('http5xx-source-list');
+  if (!sl) return;
+  OPERATORS.forEach(op => {
+    const block = document.createElement('div');
+    block.className = 'src-block';
+    block.id = `src5xx-${op}`;
+    const codesHtml = HTTP_CODES.map(c => `
+      <div class="code-item">
+        <label>${c}</label>
+        <input type="number" class="h5xx-code" data-op="${op}" data-code="${c}" id="hc5xx-${op}-${c}"
+          placeholder="0" min="0" oninput="updateHttp5xxTotal('${op}');scheduleAutoSave()">
+      </div>`).join('');
+    block.innerHTML = `
+      <div class="src-header" onclick="toggleHttp5xxSrc('${op}')">
+        <span class="src-name">${op}</span>
+        <span class="src-total">
+          <span id="htotal5xx-${op}">—</span>
+          <span class="src-arrow">▼</span>
+        </span>
+      </div>
+      <div class="src-codes"><div class="codes-grid">${codesHtml}</div></div>`;
+    sl.appendChild(block);
+  });
 }
+
+function toggleHttp5xxSrc(op) {
+  document.getElementById(`src5xx-${op}`)?.classList.toggle('open');
+}
+
+function getHttp5xxVal(op, code) {
+  const v = parseInt(document.getElementById(`hc5xx-${op}-${code}`)?.value);
+  return isNaN(v) ? 0 : v;
+}
+
+function updateHttp5xxTotal(op) {
+  const total = HTTP_CODES.reduce((sum, c) => sum + getHttp5xxVal(op, c), 0);
+  const el = document.getElementById(`htotal5xx-${op}`);
+  const block = document.getElementById(`src5xx-${op}`);
+  if (!el || !block) return;
+  if (total > 0) {
+    el.textContent = `${total.toLocaleString()} hits`;
+    block.classList.add('has-data');
+  } else {
+    el.textContent = '—';
+    block.classList.remove('has-data');
+  }
+}
+
+function updateAllHttp5xxTotals() { OPERATORS.forEach(updateHttp5xxTotal); }
+
+/* CSV → operator matching (reuses MNO_TO_OP defined later, fallback below) */
+function matchOpFromAnsType(ansType) {
+  const val = (ansType || '').toLowerCase();
+  if (!val) return null;
+  const tokens = val.split(/[-/_ ]/);
+  const map = { gp: 'GP', grameenphone: 'GP', grameen: 'GP', rb: 'RB', robi: 'RB', tt: 'TT', teletalk: 'TT', bl: 'BL', banglalink: 'BL' };
+  for (const t of tokens) {
+    if (map[t]) return map[t];
+  }
+  // fallback: substring match, longest key first
+  const keys = Object.keys(map).sort((a, b) => b.length - a.length);
+  for (const k of keys) {
+    if (val.includes(k)) return map[k];
+  }
+  return null;
+}
+
+function parseHttp5xxCsv(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('csv-http5xx-status');
+  const zoneEl = document.getElementById('zone-http5xx');
+  statusEl.textContent = `Reading ${file.name}…`;
+  statusEl.className = 'upload-status';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const lines = e.target.result.split('\n');
+      const headers = splitCsvRow(lines[0]);
+      const ansIdx = headers.findIndex(h => h.replace(/"/g,'').trim() === 'ans_type' || h.replace(/"/g,'').trim() === 'ansType');
+      const evtIdx = headers.findIndex(h => h.toLowerCase().includes('event'));
+
+      if (ansIdx < 0 || evtIdx < 0) {
+        statusEl.textContent = `⚠ Columns not found (need ans_type, event.original). Headers: ${headers.slice(0,5).map(h=>h.replace(/"/g,'')).join(', ')}`;
+        statusEl.className = 'upload-status error';
+        return;
+      }
+
+      const counts = {};
+      OPERATORS.forEach(op => { counts[op] = {}; });
+      let matched = 0;
+
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        const cols = splitCsvRow(lines[i]);
+        const op = matchOpFromAnsType(cols[ansIdx]);
+        if (!op) continue;
+        const evt = (cols[evtIdx] || '').replace(/"/g,'');
+        const parts = evt.split(' ');
+        let code = null;
+        for (let j = 0; j < parts.length; j++) {
+          if (parts[j].startsWith('HTTP/') && j + 1 < parts.length) {
+            const c = parts[j + 1];
+            if (c && c.length === 3 && !isNaN(c)) { code = c; break; }
+          }
+        }
+        if (!code || !HTTP_CODES.includes(code)) continue;
+        counts[op][code] = (counts[op][code] || 0) + 1;
+        matched++;
+      }
+
+      OPERATORS.forEach(op => {
+        HTTP_CODES.forEach(c => {
+          const el = document.getElementById(`hc5xx-${op}-${c}`);
+          if (el) { const v = counts[op][c] || 0; el.value = v > 0 ? v : ''; }
+        });
+        updateHttp5xxTotal(op);
+      });
+
+      statusEl.textContent = `✓ ${matched.toLocaleString()} matching rows — operators auto-filled`;
+      statusEl.className = 'upload-status';
+      zoneEl.classList.add('loaded');
+      showToast('HTTP 5xx CSV loaded & filled');
+      scheduleAutoSave();
+    } catch (err) {
+      statusEl.textContent = 'Error: ' + err.message;
+      statusEl.className = 'upload-status error';
+    }
+  };
+  reader.onerror = () => { statusEl.textContent = 'File read error'; statusEl.className = 'upload-status error'; };
+  reader.readAsText(file);
+}
+
 
 /* ── DLR ────────────────────────────────────────────────── */
 function initDlr() {
@@ -246,12 +376,12 @@ function collectFormData() {
     trafficRows.push({ date: row.querySelector('.tr-date')?.value || '', vol: row.querySelector('.tr-vol')?.value || '' });
   });
   const todos = [...document.querySelectorAll('.todo-txt')].map(i => i.value);
-  const ops5xx = {};
+  const http5xx = {};
   OPERATORS.forEach(op => {
-    ops5xx[op] = {
-      e504: document.querySelector(`.h5-504[data-op="${op}"]`)?.value || '',
-      e502: document.querySelector(`.h5-502[data-op="${op}"]`)?.value || ''
-    };
+    http5xx[op] = {};
+    HTTP_CODES.forEach(c => {
+      http5xx[op][c] = document.getElementById(`hc5xx-${op}-${c}`)?.value || '';
+    });
   });
   const netData = {};
   OPERATORS.forEach(op => {
@@ -272,7 +402,7 @@ function collectFormData() {
     txtIptspOk:    document.getElementById('txt-iptsp-ok')?.value    || '',
     txtIptspIssue: document.getElementById('txt-iptsp-issue')?.value || '',
     txt5xxOverall: document.getElementById('txt-5xx-overall')?.value || '',
-    ops5xx, dlrBlocks,
+    http5xx, dlrBlocks,
     dlrOverall: document.getElementById('dlr-overall')?.value || '',
     netData,
     netOverall: document.getElementById('net-overall')?.value || '',
@@ -302,12 +432,12 @@ function restoreFormData(data) {
   if (data.togIptsp) setTog('iptsp', data.togIptsp);
   if (data.togIssue) setTog('issue', data.togIssue);
   OPERATORS.forEach(op => {
-    if (data.ops5xx?.[op]) {
-      const el504 = document.querySelector(`.h5-504[data-op="${op}"]`);
-      const el502 = document.querySelector(`.h5-502[data-op="${op}"]`);
-      if (el504) el504.value = data.ops5xx[op].e504;
-      if (el502) el502.value = data.ops5xx[op].e502;
-      calcTotal(op);
+    if (data.http5xx?.[op]) {
+      HTTP_CODES.forEach(c => {
+        const el = document.getElementById(`hc5xx-${op}-${c}`);
+        if (el) el.value = data.http5xx[op][c] || '';
+      });
+      updateHttp5xxTotal(op);
     }
     if (data.netData?.[op]) {
       const elT = document.querySelector(`.net-times[data-op="${op}"]`);
@@ -396,14 +526,14 @@ function generateAndCopy() {
   const overall5xx = document.getElementById('txt-5xx-overall')?.value.trim() || '';
   let http5xxLines = '';
   OPERATORS.forEach(op => {
-    const e504  = parseInt(document.querySelector(`.h5-504[data-op="${op}"]`)?.value) || 0;
-    const e502  = parseInt(document.querySelector(`.h5-502[data-op="${op}"]`)?.value) || 0;
-    const total = e504 + e502;
+    const parts = [];
+    HTTP_CODES.forEach(c => {
+      const v = getHttp5xxVal(op, c);
+      if (v > 0) parts.push(`${c}=${v}`);
+    });
+    const total = parts.reduce((sum, p) => sum + parseInt(p.split('=')[1]), 0);
     if (total === 0) return;
-    let detail = '';
-    if (e504 > 0) detail += ` (HTTP 504=${e504})`;
-    if (e502 > 0) detail += ` (HTTP 502=${e502})`;
-    http5xxLines += `* ${op}: ${total}${detail}\n`;
+    http5xxLines += `* ${op}: ${total} (${parts.join(', ')})\n`;
   });
 
   // ── DLR ──
@@ -518,11 +648,37 @@ function splitCsvRow(line) {
 }
 
 /* ── Status display helper ──────────────────────────────── */
+const STATUS_TO_DROP_ZONE = {
+  'csv-mno-status':   'drop-mno',
+  'csv-iptsp-status': 'drop-iptsp',
+  'csv-dlr-status':   'drop-dlr',
+};
 function setStatus(id, msg, type = 'ok') {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = msg;
   el.className = `csv-status ${type}`;
+
+  const zoneId = STATUS_TO_DROP_ZONE[id];
+  if (zoneId) {
+    const zone = document.getElementById(zoneId);
+    if (!zone) return;
+    const icon = zone.querySelector('.drop-zone-icon');
+    const text = zone.querySelector('.drop-zone-text');
+    if (type === 'ok') {
+      zone.classList.add('uploaded');
+      if (icon) icon.textContent = '✔';
+      if (text) text.textContent = msg.length > 32 ? msg.substring(0, 32) + '…' : msg;
+    } else if (type === 'error') {
+      zone.classList.remove('uploaded');
+      if (icon) icon.textContent = '⚠';
+      if (text) text.textContent = 'Error — try again';
+    } else {
+      // info = loading state, reset to default
+      if (icon) icon.textContent = '⬆';
+      if (text) text.textContent = 'Loading…';
+    }
+  }
 }
 
 /* ── File reader helper ─────────────────────────────────── */
@@ -727,18 +883,30 @@ async function fetchNetworkFromSheet() {
   btn.disabled = true;
   setStatus('fetch-network-status', 'Connecting…', 'info');
 
-  try {
-    const res = await fetch(NETWORK_CSV_URL);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const text = await res.text();
-    if (!text || text.length < 20) throw new Error('Empty response');
-    parseNetworkCsv(text);
-  } catch(e) {
-    setStatus('fetch-network-status', 'Error: ' + e.message, 'error');
-  } finally {
-    btn.textContent = 'Fetch from Google Sheet';
-    btn.disabled = false;
+  const attempts = [
+    NETWORK_CSV_URL,
+    `https://corsproxy.io/?${encodeURIComponent(NETWORK_CSV_URL)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(NETWORK_CSV_URL)}`,
+  ];
+
+  let lastErr = '';
+  for (const url of attempts) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (!text || text.length < 20) throw new Error('Empty response');
+      if (text.trim().startsWith('<!') || text.trim().startsWith('{')) throw new Error('Not CSV');
+      parseNetworkCsv(text);
+      btn.textContent = 'Fetch from Google Sheet';
+      btn.disabled = false;
+      return;
+    } catch (e) { lastErr = e.message; }
   }
+
+  setStatus('fetch-network-status', `Failed: ${lastErr}`, 'error');
+  btn.textContent = 'Fetch from Google Sheet';
+  btn.disabled = false;
 }
 
 function parseNetworkCsv(csvText) {
@@ -747,13 +915,13 @@ function parseNetworkCsv(csvText) {
 
   const headers = splitCsvRow(lines[0]).map(h => h.replace(/"/g,'').trim().toLowerCase());
 
-  // Find column indexes
+  // Find column indexes (matches DATE, IMPACTED_OPERATOR, FAILED — current sheet headers)
   const dateIdx   = headers.findIndex(h => h === 'date');
-  const mnoIdx    = headers.findIndex(h => h.includes('mno') || h.includes('p2p'));
+  const mnoIdx    = headers.findIndex(h => h.includes('impacted_operator') || h.includes('operator') || h.includes('mno') || h.includes('p2p'));
   const failedIdx = headers.findIndex(h => h === 'failed' || h.includes('failed'));
 
   if (dateIdx < 0 || mnoIdx < 0 || failedIdx < 0) {
-    setStatus('fetch-network-status', `Columns not found. Headers: ${headers.slice(0,6).join(' | ')}`, 'error');
+    setStatus('fetch-network-status', `Columns not found. Headers: ${headers.slice(0,8).join(' | ')}`, 'error');
     return;
   }
 
@@ -873,3 +1041,34 @@ function parseSheetDate(raw) {
   return raw;
 }
 
+
+/* ── Drag & Drop helpers ── */
+function handleDragOver(e, zoneId) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  document.getElementById(zoneId).classList.add('drag-over');
+}
+
+function handleDragLeave(zoneId) {
+  document.getElementById(zoneId).classList.remove('drag-over');
+}
+
+function handleDrop(e, inputId, parseFn) {
+  e.preventDefault();
+  const zoneId = e.currentTarget.id;
+  document.getElementById(zoneId).classList.remove('drag-over');
+
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    alert('Only .csv files are supported.');
+    return;
+  }
+
+  // Inject file into the hidden input and call the parse function
+  const input = document.getElementById(inputId);
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  parseFn(input);
+}
