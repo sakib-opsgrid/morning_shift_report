@@ -820,7 +820,7 @@ function parseDlrCsv(input) {
 }
 
 /* ── Traffic: Google Sheet Fetch ────────────────────────── */
-const PUBLISHED_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRujBLTYKXc7JJeKyfGzqEzaMFxNFs4cSY3X1K3g5sanQ2HsNpTwhxVV2s0zkITNw/pub?gid=1186344439&single=true&output=csv';
+const PUBLISHED_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRB1vqT5gyRdaEOGzydaUnpY18NzveOLvu2htToZL4zTOPiG_1PMpbHzAoUostJODs2-oB064InlxG3/pub?output=csv';
 
 async function fetchTrafficFromSheet() {
   const btn = document.getElementById('fetch-traffic-btn');
