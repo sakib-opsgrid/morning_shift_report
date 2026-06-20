@@ -1,4 +1,4 @@
-# Morning Shift Report
+# Morning Shift Report `v2.8.0`
 **Infozillion Teletech Bd Ltd · Service Assurance**
 
 A premium, browser-based daily shift reporting tool for the Service Assurance team. Automatically pulls data from ELK CSV exports and Google Sheets, reducing manual effort and ensuring consistent reports every morning.
@@ -21,6 +21,7 @@ A premium, browser-based daily shift reporting tool for the Service Assurance te
 | Print / PDF | Clean print layout for PDF export |
 | Mobile Responsive | Fully usable on phones and tablets |
 | Premium UI | DM Sans / DM Mono / Instrument Serif typography, warm minimal theme |
+| Version Badge | Current version shown in the header next to the app subtitle |
 
 ---
 
@@ -154,6 +155,20 @@ If a sheet's column headers ever change, update the matching logic inside `parse
    ```
 
 > **Important:** Google Sheets fetch only works over HTTPS (GitHub Pages). It will not work when opening files locally.
+
+---
+
+## Changelog
+
+| Version | Changes |
+|---|---|
+| v2.8.0 | Version badge added to header |
+| v2.7.0 | Traffic Trend Google Sheet fetch fixed (re-published sheet link) |
+| v2.6.0 | Network section Google Sheet fetch fixed for new `IMPACTED_OPERATOR` column structure; CORS proxy fallback added |
+| v2.5.0 | Header layout fixed (logo left, action buttons right); NTTN overall status text corrected to remove "(All Connectivity)" |
+| v2.0.0 | Premium UI redesign (DM Sans / DM Mono / Instrument Serif); HTTP 4xx/5xx (500–504) CSV auto-fill section added per operator, with manual entry fallback |
+| v1.1.0 | Prepared By field placeholder updated to generic "e.g. Name" for shared team use |
+| v1.0.0 | Drag & drop CSV upload added for MNO / IPTSP / DLR sections |
 
 ---
 
